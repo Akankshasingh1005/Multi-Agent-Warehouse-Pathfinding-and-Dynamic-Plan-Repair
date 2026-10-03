@@ -1,0 +1,612 @@
+/* ==========================================================================
+   2000s Retro PC Game / RTS HUD Theme
+   Solid Colors Only - No Gradients - No Glows - Sharp 3D Beveled Edges
+   ========================================================================== */
+
+:root {
+    --bg-main: #101318;
+    --bg-panel: #1a202a;
+    --bg-card: #202734;
+    --bg-dark-screen: #0a0c10;
+    --border-light: #526177;
+    --border-dark: #080a0d;
+    --border-mid: #2c3543;
+    
+    --text-primary: #e6ecf2;
+    --text-secondary: #9aa7b8;
+    --text-muted: #5e6b7d;
+    
+    --color-green: #00cc55;
+    --color-green-bg: #143d22;
+    --color-amber: #e6a100;
+    --color-amber-bg: #4d3600;
+    --color-red: #d92626;
+    --color-red-bg: #4a1212;
+    --color-blue: #2472d9;
+    --color-cyan: #00b8d4;
+    
+    --font-game: 'Consolas', 'Courier New', 'Lucida Console', monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border-radius: 0 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-game);
+    font-size: 13px;
+    line-height: 1.4;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.app-container {
+    max-width: 1720px;
+    margin: 0 auto;
+    padding: 12px;
+}
+
+/* ==========================================================================
+   Header (Command Center Banner)
+   ========================================================================== */
+
+.app-header {
+    background: var(--bg-panel);
+    border: 2px solid;
+    border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.app-header h1 {
+    font-family: var(--font-game);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #ffffff;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.header-subtitle {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--color-amber);
+    text-transform: uppercase;
+}
+
+.legend-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    background: var(--bg-dark-screen);
+    border: 2px solid;
+    border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+    padding: 6px 14px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--text-primary);
+    text-transform: uppercase;
+}
+
+.legend-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    border: 1px solid #000;
+}
+
+.legend-icon.obstacle {
+    background: #384152;
+    border: 1px solid #55637a;
+}
+
+.legend-icon.blocked {
+    background: var(--color-red);
+    border: 1px solid #ff5555;
+}
+
+.legend-icon.pickup {
+    background: var(--color-green);
+    color: #000;
+}
+
+.legend-icon.delivery {
+    background: var(--color-blue);
+    color: #fff;
+}
+
+/* ==========================================================================
+   Main Layout Grid
+   ========================================================================== */
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 12px;
+}
+
+/* ==========================================================================
+   Canvas Panel (Radar / Floor Map)
+   ========================================================================== */
+
+.canvas-panel {
+    background: var(--bg-panel);
+    border: 2px solid;
+    border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+    display: flex;
+    flex-direction: column;
+}
+
+.canvas-toolbar {
+    background: #151a22;
+    border-bottom: 2px solid var(--border-dark);
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.speed-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.speed-control input[type="range"] {
+    accent-color: var(--color-amber);
+    background: #000;
+    cursor: pointer;
+    height: 6px;
+}
+
+#speedValue {
+    display: inline-block;
+    width: 32px;
+    text-align: right;
+    color: var(--color-green);
+}
+
+#canvasContainer {
+    flex: 1;
+    min-height: 620px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #14171d;
+    padding: 10px;
+    position: relative;
+    border-top: 2px solid var(--border-dark);
+}
+
+canvas#simCanvas {
+    display: block;
+    background: #14171d;
+    border: 2px solid;
+    border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+    image-rendering: pixelated;
+}
+
+/* ==========================================================================
+   Controls Panel (Sidebar)
+   ========================================================================== */
+
+.controls-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.panel-section {
+    background: var(--bg-panel);
+    border: 2px solid;
+    border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+    padding: 10px 12px;
+}
+
+.panel-section h3 {
+    font-family: var(--font-game);
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #ffffff;
+    background: #252d3a;
+    border: 1px solid var(--border-light);
+    border-left: 4px solid var(--color-amber);
+    padding: 4px 8px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+/* Form Controls */
+.control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid #222936;
+}
+
+.control-row:last-child {
+    border-bottom: none;
+}
+
+.control-row label {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.control-row input[type="number"] {
+    background: var(--bg-dark-screen);
+    border: 2px solid;
+    border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+    color: #ffffff;
+    font-family: var(--font-game);
+    font-size: 12px;
+    font-weight: bold;
+    padding: 3px 6px;
+    width: 65px;
+    text-align: right;
+    outline: none;
+}
+
+.control-row input[type="number"]:focus {
+    border-color: var(--color-amber);
+}
+
+/* ==========================================================================
+   2000s Beveled Buttons
+   ========================================================================== */
+
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.btn {
+    font-family: var(--font-game);
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    cursor: pointer;
+    background: #28313e;
+    color: #ffffff;
+    border: 2px solid;
+    border-color: #5d6d87 #0f1318 #0f1318 #5d6d87;
+    outline: none;
+    user-select: none;
+}
+
+.btn:hover:not(:disabled) {
+    background: #354152;
+    border-color: #7284a3 #161c24 #161c24 #7284a3;
+}
+
+.btn:active:not(:disabled),
+.btn.active {
+    background: #181e26;
+    border-color: #0f1318 #5d6d87 #5d6d87 #0f1318;
+    color: var(--color-amber);
+}
+
+.btn:disabled {
+    background: #171b22;
+    color: #4b5563;
+    border-color: #272f3a #0b0e12 #0b0e12 #272f3a;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: #164024;
+    border-color: #2b7a45 #0a2112 #0a2112 #2b7a45;
+    color: #bbf7d0;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #1e5631;
+    border-color: #389e5a #0e2e19 #0e2e19 #389e5a;
+}
+
+.btn-danger {
+    background: #541717;
+    border-color: #8c2626 #240707 #240707 #8c2626;
+    color: #fecaca;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #6e1e1e;
+    border-color: #ad3131 #2e0909 #2e0909 #ad3131;
+}
+
+.btn-warning {
+    background: #543a0d;
+    border-color: #8c6016 #241804 #241804 #8c6016;
+    color: #fef08a;
+}
+
+.btn-warning:hover:not(:disabled) {
+    background: #6e4c11;
+    border-color: #ad771b #2e1f05 #2e1f05 #ad771b;
+}
+
+/* ==========================================================================
+   Metrics Grid (Digital LCD Readout)
+   ========================================================================== */
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.metric-card {
+    background: var(--bg-dark-screen);
+    border: 2px solid;
+    border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+    padding: 6px 8px;
+}
+
+.metric-value {
+    font-size: 20px;
+    font-weight: bold;
+    font-family: var(--font-game);
+    color: #ffffff;
+    line-height: 1.1;
+    margin-bottom: 2px;
+}
+
+.metric-value.amber { color: var(--color-amber); }
+.metric-value.green { color: var(--color-green); }
+.metric-value.red   { color: var(--color-red); }
+.metric-value.pink  { color: #ff55bb; }
+.metric-value.lime  { color: #aeea00; }
+
+.metric-label {
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   Agent Status List
+   ========================================================================== */
+
+.agent-list {
+    max-height: 160px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--bg-dark-screen);
+    border: 2px solid;
+    border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+    padding: 4px;
+}
+
+.agent-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 6px;
+    background: #141922;
+    border: 1px solid #232b38;
+    font-size: 11px;
+}
+
+.agent-dot {
+    width: 10px;
+    height: 10px;
+    border: 1px solid #000;
+    flex-shrink: 0;
+}
+
+.agent-id {
+    font-weight: bold;
+    color: #ffffff;
+    min-width: 60px;
+}
+
+.agent-status-badge {
+    font-size: 9px;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 1px 4px;
+    border: 1px solid #000;
+}
+
+.agent-status-badge.active {
+    background: var(--color-green-bg);
+    color: var(--color-green);
+    border-color: var(--color-green);
+}
+
+.agent-status-badge.broken {
+    background: var(--color-red-bg);
+    color: var(--color-red);
+    border-color: var(--color-red);
+}
+
+.agent-status-badge.done {
+    background: #0f2d42;
+    color: #38bdf8;
+    border-color: #38bdf8;
+}
+
+.agent-tasks {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.modified-badge {
+    font-size: 9px;
+    font-weight: bold;
+    color: var(--color-amber);
+    background: var(--color-amber-bg);
+    border: 1px solid var(--color-amber);
+    padding: 1px 4px;
+    text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Event Log (Terminal Window)
+   ========================================================================== */
+
+.log-container {
+    height: 130px;
+    overflow-y: auto;
+    background: var(--bg-dark-screen);
+    border: 2px solid;
+    border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.log-entry {
+    font-size: 11px;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.log-time {
+    color: var(--color-amber);
+    font-weight: bold;
+}
+
+.log-info       { color: #c4d1e0; }
+.log-success    { color: var(--color-green); }
+.log-warning    { color: var(--color-amber); }
+.log-disruption { color: #ff5555; }
+.log-error      { color: #ff3333; }
+
+/* ==========================================================================
+   Benchmark Panel
+   ========================================================================== */
+
+.benchmark-panel {
+    margin-top: 12px;
+    background: var(--bg-panel);
+    border: 2px solid;
+    border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+    padding: 12px;
+}
+
+.benchmark-panel h3 {
+    font-family: var(--font-game);
+    font-size: 13px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    text-transform: uppercase;
+}
+
+.charts-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.chart-wrapper {
+    background: var(--bg-dark-screen);
+    border: 2px solid;
+    border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+    padding: 8px;
+    display: flex;
+    justify-content: center;
+}
+
+.chart-wrapper canvas {
+    display: block;
+}
+
+#benchmarkSummary {
+    margin-top: 10px;
+}
+
+.benchmark-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    background: var(--bg-dark-screen);
+    border: 2px solid;
+    border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+}
+
+.benchmark-table th {
+    background: #252d3a;
+    border: 1px solid var(--border-light);
+    color: #ffffff;
+    padding: 5px 8px;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.benchmark-table td {
+    padding: 4px 8px;
+    border: 1px solid #1c222c;
+    color: #c4d1e0;
+}
+
+.benchmark-table tr:nth-child(even) {
+    background: #11141b;
+}
+
+/* ==========================================================================
+   2000s Scrollbars
+   ========================================================================== */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: #080a0d;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #354050;
+    border: 2px solid;
+    border-color: #5d6d87 #0f1318 #0f1318 #5d6d87;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #46556b;
+}
