@@ -1,472 +1,210 @@
-import random
+#!/usr/bin/env python3
+"""
+main.py - Warehouse Multi-Agent Simulation Entry Point
 
-from warehouse import Agent, Task, Warehouse
-from planner import SpaceTimeAStar
-from simulation import Simulator, save_metrics
-from visualize import (
-    plot_experiment_results,
-    plot_warehouse,
+Multi-Agent Pathfinding with Dynamic Plan Repair in an Automated Warehouse.
+
+Usage:
+    python main.py                    # Run demo simulation with visualization
+    python main.py --experiments      # Run all experiments and generate plots
+    python main.py --demo             # Run a quick demo scenario
+    python main.py --pygame           # Use Pygame visualization (if installed)
+
+    Options:
+        --grid-size N       Grid dimensions (NxN), default=15
+        --agents N          Number of agents, default=5
+        --tasks N           Tasks per agent, default=2
+        --obstacles F       Obstacle density (0.0-0.4), default=0.12
+        --disruptions N     Number of disruptions, default=3
+        --seed N            Random seed, default=42
+        --no-viz            Skip visualization
+"""
+
+import argparse
+import sys
+import os
+
+from simulation import Simulation
+from visualization import (
+    visualize_matplotlib,
+    plot_static_snapshot,
+    PygameVisualizer,
+    PYGAME_AVAILABLE,
 )
+from experiments import run_all_experiments
 
 
-# =============================================================
-# Configuration
-# =============================================================
-
-GRID_SIZE = 20
-
-AGENT_COUNTS = [
-    5,
-    10,
-    15,
-    20,
-]
-
-DYNAMIC_OBSTACLE_DENSITIES = [
-    0.00,
-    0.05,
-    0.10,
-    0.15,
-]
-
-TRIALS = 5
-
-BASE_SEED = 42
+def print_banner():
+    """Print a nice banner."""
+    banner = """
+╔══════════════════════════════════════════════════════════════╗
+║     Multi-Agent Warehouse Pathfinding Simulation            ║
+║     with Dynamic Plan Repair                                ║
+║                                                              ║
+║     Algorithms: Space-Time A*, Cooperative A*,               ║
+║                 Local Plan Repair with Negotiation            ║
+╚══════════════════════════════════════════════════════════════╝
+"""
+    print(banner)
 
 
-# =============================================================
-# Warehouse generation
-# =============================================================
+def run_demo(args):
+    """Run a demonstration simulation."""
+    print_banner()
 
-def generate_obstacles(
-    rows: int,
-    cols: int,
-    density: float,
-    rng: random.Random,
-):
-    obstacles = set()
+    print(f"Configuration:")
+    print(f"  Grid Size:     {args.grid_size}x{args.grid_size}")
+    print(f"  Agents:        {args.agents}")
+    print(f"  Tasks/Agent:   {args.tasks}")
+    print(f"  Obstacles:     {args.obstacles:.0%}")
+    print(f"  Disruptions:   {args.disruptions}")
+    print(f"  Seed:          {args.seed}")
+    print()
 
-    total_cells = rows * cols
-
-    target = int(
-        total_cells * density
+    # Create and run simulation
+    sim = Simulation(
+        grid_width=args.grid_size,
+        grid_height=args.grid_size,
+        num_agents=args.agents,
+        tasks_per_agent=args.tasks,
+        obstacle_density=args.obstacles,
+        num_disruptions=args.disruptions,
+        seed=args.seed,
+        max_time=300,
     )
 
-    while len(obstacles) < target:
+    print("Planning initial paths (Cooperative A*)...")
+    success = sim.plan_initial_paths()
+    print(f"  Initial planning: {'SUCCESS' if success else 'PARTIAL (some agents could not plan)'}")
+    print(f"  Planning time: {sim.metrics.initial_planning_time * 1000:.1f} ms")
+    print()
 
-        position = (
-            rng.randrange(rows),
-            rng.randrange(cols),
-        )
+    # Print agent info
+    print("Agents:")
+    for agent in sim.agents:
+        targets = agent.get_remaining_targets()
+        print(f"  Agent {agent.agent_id}: start={agent.start_pos}, "
+              f"targets={targets}, path_len={len(agent.path)}")
+    print()
 
-        obstacles.add(position)
+    # Generate disruptions
+    sim.generate_disruptions()
+    print("Scheduled Disruptions:")
+    for d in sim.disruptions:
+        print(f"  t={d.time_step}: {d.disruption_type.value} - {d.params}")
+    print()
 
-    return obstacles
+    # Run simulation
+    print("Running simulation...")
+    print("-" * 50)
+    metrics = sim.run(verbose=True)
+    print("-" * 50)
 
+    # Print detailed results
+    print("\n" + "=" * 50)
+    print("SIMULATION RESULTS")
+    print("=" * 50)
+    print(f"  Total Time Steps:     {metrics.total_time_steps}")
+    print(f"  Agents Completed:     {metrics.agents_finished}/{metrics.total_agents}")
+    print(f"  Disruptions Handled:  {metrics.disruptions_handled}")
+    print(f"  Total Plans Modified: {metrics.total_agents_modified}")
+    if metrics.agents_modified_per_disruption:
+        print(f"  Per-Disruption Impact: {metrics.agents_modified_per_disruption}")
+        avg = sum(metrics.agents_modified_per_disruption) / len(metrics.agents_modified_per_disruption)
+        print(f"  Avg Modified/Disruption: {avg:.2f}")
+    print()
 
-# =============================================================
-# Agent generation
-# =============================================================
+    # Disruption log
+    if sim.disruption_log:
+        print("Disruption Details:")
+        for entry in sim.disruption_log:
+            print(f"  t={entry['time']}: {entry['type']}")
+            print(f"    {entry['description']}")
+            print(f"    Agents re-planned: {entry['agents_modified']}")
+        print()
 
-def generate_agents(
-    warehouse: Warehouse,
-    num_agents: int,
-    rng: random.Random,
-):
-    used = set()
+    # Print path changes
+    print("Path Analysis:")
+    for agent in sim.agents:
+        orig_len = len(agent.original_path) if agent.original_path else 0
+        new_len = len(agent.path)
+        modified = "YES" if agent.plan_modified else "no"
+        print(f"  Agent {agent.agent_id}: orig_path={orig_len} steps, "
+              f"final_path={new_len} steps, modified={modified}, "
+              f"status={agent.status.value}")
 
-    agents = []
-
-    def random_free_position():
-
-        for _ in range(10000):
-
-            position = (
-                rng.randrange(
-                    warehouse.rows
-                ),
-                rng.randrange(
-                    warehouse.cols
-                ),
-            )
-
-            if (
-                warehouse.is_free(position)
-                and position not in used
-            ):
-                used.add(position)
-                return position
-
-        raise RuntimeError(
-            "Unable to generate enough free positions."
-        )
-
-    for agent_id in range(
-        1,
-        num_agents + 1,
-    ):
-
-        start = random_free_position()
-        pickup = random_free_position()
-        delivery = random_free_position()
-
-        agents.append(
-            Agent(
-                agent_id=agent_id,
-                start=start,
-                task=Task(
-                    pickup=pickup,
-                    delivery=delivery,
-                ),
-            )
-        )
-
-    return agents
+    return sim
 
 
-# =============================================================
-# Demo
-# =============================================================
-
-def run_demo():
-
-    rng = random.Random(BASE_SEED)
-
-    obstacles = generate_obstacles(
-        GRID_SIZE,
-        GRID_SIZE,
-        density=0.10,
-        rng=rng,
+def main():
+    parser = argparse.ArgumentParser(
+        description="Multi-Agent Warehouse Simulation with Dynamic Plan Repair"
     )
+    parser.add_argument("--grid-size", type=int, default=15,
+                       help="Grid dimensions (NxN)")
+    parser.add_argument("--agents", type=int, default=5,
+                       help="Number of agents")
+    parser.add_argument("--tasks", type=int, default=2,
+                       help="Tasks per agent")
+    parser.add_argument("--obstacles", type=float, default=0.12,
+                       help="Obstacle density (0.0-0.4)")
+    parser.add_argument("--disruptions", type=int, default=3,
+                       help="Number of disruptions")
+    parser.add_argument("--seed", type=int, default=42,
+                       help="Random seed")
+    parser.add_argument("--experiments", action="store_true",
+                       help="Run all experiments")
+    parser.add_argument("--demo", action="store_true",
+                       help="Run demo simulation")
+    parser.add_argument("--pygame", action="store_true",
+                       help="Use Pygame visualization")
+    parser.add_argument("--no-viz", action="store_true",
+                       help="Skip visualization")
+    parser.add_argument("--save-animation", type=str, default=None,
+                       help="Save animation to file (e.g., simulation.gif)")
 
-    warehouse = Warehouse(
-        rows=GRID_SIZE,
-        cols=GRID_SIZE,
-        static_obstacles=obstacles,
-    )
+    args = parser.parse_args()
 
-    agents = generate_agents(
-        warehouse,
-        num_agents=5,
-        rng=rng,
-    )
-
-    planner = SpaceTimeAStar(
-        warehouse
-    )
-
-    simulator = Simulator(
-        warehouse=warehouse,
-        agents=agents,
-        planner=planner,
-        seed=BASE_SEED,
-    )
-
-    success = simulator.generate_initial_plans()
-
-    if not success:
-        print(
-            "Could not generate initial plans."
-        )
+    if args.experiments:
+        # Run all experiments
+        print_banner()
+        output_dir = os.path.join(os.path.dirname(__file__), "results")
+        run_all_experiments(output_dir=output_dir)
         return
 
-    print("\nInitial plans")
-    print("=" * 60)
+    # Run demo
+    sim = run_demo(args)
+
+    if args.no_viz:
+        return
+
+    # Visualization
+    if args.pygame and PYGAME_AVAILABLE:
+        print("\nLaunching Pygame visualization...")
+        viz = PygameVisualizer(sim, cell_size=36, fps=4)
+        viz.run()
+    else:
+        if args.pygame and not PYGAME_AVAILABLE:
+            print("\nPygame not installed. Falling back to Matplotlib.")
+            print("Install Pygame with: pip install pygame")
+
+        print("\nGenerating Matplotlib visualization...")
+
+        # Save static snapshots
+        output_dir = os.path.join(os.path.dirname(__file__), "results")
+        os.makedirs(output_dir, exist_ok=True)
+
+        plot_static_snapshot(sim, time_step=0,
+                           save_path=os.path.join(output_dir, "snapshot_t0.png"))
+
+        # Animated visualization
+        save_path = args.save_animation
+        if save_path is None:
+            save_path = os.path.join(output_dir, "simulation.gif")
+
+        visualize_matplotlib(sim, save_path=save_path, show=False, interval=250)
+        print(f"\nAnimation saved to: {save_path}")
 
-    for agent in agents:
-
-        print(
-            f"Agent {agent.agent_id}: "
-            f"{len(agent.path) - 1} steps"
-        )
-
-        print(agent.path)
-
-    # ---------------------------------------------------------
-    # Visualize initial state.
-    # ---------------------------------------------------------
-
-    plot_warehouse(
-        warehouse,
-        agents,
-        time_step=0,
-        save_path="results/initial_warehouse.png",
-    )
-
-    # ---------------------------------------------------------
-    # Find a cell from Agent 1's future path and block it.
-    # ---------------------------------------------------------
-
-    agent = agents[0]
-
-    disruption_time = min(
-        5,
-        len(agent.path) - 2,
-    )
-
-    disruption_position = agent.path[
-        disruption_time
-    ]
-
-    print("\nDisruption")
-    print("=" * 60)
-
-    print(
-        f"Time: {disruption_time}"
-    )
-
-    print(
-        f"Blocked cell: {disruption_position}"
-    )
-
-    result = simulator.add_dynamic_obstacle(
-        disruption_position
-    )
-
-    print("\nRepair result")
-    print("=" * 60)
-
-    print(
-        f"Success: {result.success}"
-    )
-
-    print(
-        f"Changed agents: "
-        f"{result.changed_agents}"
-    )
-
-    print(
-        f"Reason: {result.reason}"
-    )
-
-    # ---------------------------------------------------------
-    # Run simulation from current time.
-    # ---------------------------------------------------------
-
-    metrics = simulator.run(
-        max_steps=500
-    )
-
-    print("\nSimulation results")
-    print("=" * 60)
-
-    print(
-        f"Makespan: "
-        f"{metrics.makespan}"
-    )
-
-    print(
-        f"Aggregate agent time: "
-        f"{metrics.aggregate_time}"
-    )
-
-    print(
-        f"Average changed agents: "
-        f"{metrics.average_changed_agents:.2f}"
-    )
-
-    print(
-        f"Average repair time: "
-        f"{metrics.average_repair_time_ms:.3f} ms"
-    )
-
-
-# =============================================================
-# Experiments
-# =============================================================
-
-def run_experiments():
-
-    results = []
-
-    print("\nRunning experiments...")
-    print("=" * 60)
-
-    for num_agents in AGENT_COUNTS:
-
-        for density in DYNAMIC_OBSTACLE_DENSITIES:
-
-            for trial in range(TRIALS):
-
-                seed = (
-                    BASE_SEED
-                    + trial
-                    + num_agents * 100
-                    + int(density * 1000)
-                )
-
-                rng = random.Random(seed)
-
-                # -------------------------------------------------
-                # Static warehouse obstacles.
-                # -------------------------------------------------
-
-                static_obstacles = generate_obstacles(
-                    GRID_SIZE,
-                    GRID_SIZE,
-                    density=0.10,
-                    rng=rng,
-                )
-
-                warehouse = Warehouse(
-                    rows=GRID_SIZE,
-                    cols=GRID_SIZE,
-                    static_obstacles=static_obstacles,
-                )
-
-                # -------------------------------------------------
-                # Agents.
-                # -------------------------------------------------
-
-                agents = generate_agents(
-                    warehouse,
-                    num_agents=num_agents,
-                    rng=rng,
-                )
-
-                planner = SpaceTimeAStar(
-                    warehouse
-                )
-
-                simulator = Simulator(
-                    warehouse=warehouse,
-                    agents=agents,
-                    planner=planner,
-                    seed=seed,
-                )
-
-                # -------------------------------------------------
-                # Initial MAPF.
-                # -------------------------------------------------
-
-                success = (
-                    simulator.generate_initial_plans()
-                )
-
-                if not success:
-
-                    print(
-                        f"Initial planning failed: "
-                        f"agents={num_agents}, "
-                        f"density={density}, "
-                        f"trial={trial}"
-                    )
-
-                    continue
-
-                # -------------------------------------------------
-                # Generate dynamic obstacles.
-                #
-                # We select free cells rather than placing
-                # obstacles directly on agents' starting cells.
-                # -------------------------------------------------
-
-                disruption_schedule = {}
-
-                num_dynamic = int(
-                    GRID_SIZE
-                    * GRID_SIZE
-                    * density
-                )
-
-                candidate_cells = []
-
-                for r in range(GRID_SIZE):
-                    for c in range(GRID_SIZE):
-
-                        position = (r, c)
-
-                        if (
-                            warehouse.is_free(position)
-                        ):
-                            candidate_cells.append(
-                                position
-                            )
-
-                rng.shuffle(candidate_cells)
-
-                # Spread disruptions over time.
-                for i in range(
-                    min(
-                        num_dynamic,
-                        len(candidate_cells),
-                    )
-                ):
-
-                    position = candidate_cells[i]
-
-                    time_step = 10 + i * 5
-
-                    disruption_schedule[
-                        time_step
-                    ] = position
-
-                # -------------------------------------------------
-                # Run.
-                # -------------------------------------------------
-
-                metrics = simulator.run(
-                    max_steps=500,
-                    disruption_schedule=(
-                        disruption_schedule
-                    ),
-                )
-
-                results.append(
-                    {
-                        "num_agents": num_agents,
-                        "dynamic_obstacle_density": density,
-                        "trial": trial,
-                        "makespan": metrics.makespan,
-                        "aggregate_time": (
-                            metrics.aggregate_time
-                        ),
-                        "disruptions": (
-                            metrics.disruptions
-                        ),
-                        "successful_repairs": (
-                            metrics.successful_repairs
-                        ),
-                        "failed_repairs": (
-                            metrics.failed_repairs
-                        ),
-                        "average_changed_agents": (
-                            metrics.average_changed_agents
-                        ),
-                        "average_repair_time_ms": (
-                            metrics.average_repair_time_ms
-                        ),
-                    }
-                )
-
-                print(
-                    f"agents={num_agents:2d} | "
-                    f"density={density:.2f} | "
-                    f"trial={trial} | "
-                    f"makespan={metrics.makespan}"
-                )
-
-    save_metrics(
-        results,
-        "results/metrics.csv",
-    )
-
-    print(
-        "\nExperiment data saved to "
-        "results/metrics.csv"
-    )
-
-    plot_experiment_results(
-        "results/metrics.csv",
-        "results/plots",
-    )
-
-
-# =============================================================
-# Entry point
-# =============================================================
 
 if __name__ == "__main__":
-
-    run_demo()
-    run_experiments()
+    main()
