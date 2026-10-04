@@ -52,35 +52,49 @@
         <!-- Controls Panel -->
         <div class="controls-panel">
 
-            <!-- Configuration -->
+            <!-- Analytics & Metrics (Arranged one below another) -->
+            <div class="panel-section metrics-section">
+                <h3>[ METRICS & ANALYTICS ]</h3>
+                <div class="metrics-list">
+                    <div class="metric-row">
+                        <span class="metric-label">Current Time</span>
+                        <span class="metric-value" id="metricTime">0</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Current Makespan</span>
+                        <span class="metric-value amber" id="metricMakespan">0</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Initial Makespan</span>
+                        <span class="metric-value green" id="metricInitMakespan">0</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Total Disruptions</span>
+                        <span class="metric-value red" id="metricDisruptions">0</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Plans Modified</span>
+                        <span class="metric-value pink" id="metricModified">0</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Avg Modified / Disruption</span>
+                        <span class="metric-value lime" id="metricAvgModified">N/A</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Status (Sized to fit 5 agents without slider) -->
             <div class="panel-section">
-                <h3>[ CONFIGURATION ]</h3>
-                <div class="control-row">
-                    <label>Grid Width</label>
-                    <input type="number" id="gridWidth" value="20" min="5" max="40">
-                </div>
-                <div class="control-row">
-                    <label>Grid Height</label>
-                    <input type="number" id="gridHeight" value="20" min="5" max="40">
-                </div>
-                <div class="control-row">
-                    <label>Agents</label>
-                    <input type="number" id="numAgents" value="5" min="1" max="15">
-                </div>
-                <div class="control-row">
-                    <label>Obstacle %</label>
-                    <input type="number" id="obstacleDensity" value="15" min="0" max="30">
-                </div>
-                <div class="control-row">
-                    <label>Tasks/Agent</label>
-                    <input type="number" id="tasksPerAgent" value="2" min="1" max="5">
+                <h3>[ AGENT STATUS ]</h3>
+                <div id="agentList" class="agent-list">
+                    <!-- Populated dynamically -->
                 </div>
             </div>
 
             <!-- Disruptions -->
             <div class="panel-section">
                 <h3>[ DISRUPTIONS ]</h3>
-                <div class="btn-group">
+                <div class="btn-group disruption-btns">
                     <button id="btnBlockCell" class="btn btn-danger">BLOCK CELL</button>
                     <button id="btnBreakAgent" class="btn btn-danger">BREAK AGENT</button>
                     <button id="btnEmergency" class="btn btn-warning">EMERGENCY TASK</button>
@@ -88,42 +102,30 @@
                 </div>
             </div>
 
-            <!-- Metrics -->
+            <!-- Configuration -->
             <div class="panel-section">
-                <h3>[ METRICS ]</h3>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-value" id="metricTime">0</div>
-                        <div class="metric-label">Current Time</div>
+                <h3>[ CONFIGURATION ]</h3>
+                <div class="config-grid">
+                    <div class="control-row">
+                        <label>Grid Width</label>
+                        <input type="number" id="gridWidth" value="20" min="5" max="40">
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-value amber" id="metricMakespan">0</div>
-                        <div class="metric-label">Makespan</div>
+                    <div class="control-row">
+                        <label>Grid Height</label>
+                        <input type="number" id="gridHeight" value="20" min="5" max="40">
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-value green" id="metricInitMakespan">0</div>
-                        <div class="metric-label">Initial Makespan</div>
+                    <div class="control-row">
+                        <label>Agents</label>
+                        <input type="number" id="numAgents" value="5" min="1" max="15">
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-value red" id="metricDisruptions">0</div>
-                        <div class="metric-label">Disruptions</div>
+                    <div class="control-row">
+                        <label>Obstacle %</label>
+                        <input type="number" id="obstacleDensity" value="15" min="0" max="30">
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-value pink" id="metricModified">0</div>
-                        <div class="metric-label">Plans Modified</div>
+                    <div class="control-row full-span">
+                        <label>Tasks/Agent</label>
+                        <input type="number" id="tasksPerAgent" value="2" min="1" max="5">
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-value lime" id="metricAvgModified">N/A</div>
-                        <div class="metric-label">Avg Modified/Disruption</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Agent Status -->
-            <div class="panel-section">
-                <h3>[ AGENT STATUS ]</h3>
-                <div id="agentList" class="agent-list">
-                    <!-- Populated dynamically -->
                 </div>
             </div>
 
@@ -138,25 +140,6 @@
         </div>
     </div>
 
-    <!-- ─── Benchmark Panel ──────────────────────────────── -->
-    <div class="benchmark-panel">
-        <h3>[ PERFORMANCE ANALYSIS ]
-            <button id="btnRunBenchmark" class="btn btn-primary" style="margin-left: 12px;">RUN BENCHMARK</button>
-        </h3>
-        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
-            Runs automated experiments varying agent count and obstacle density. Measures makespan and plan modifications per disruption.
-        </p>
-        <div class="charts-container">
-            <div class="chart-wrapper">
-                <canvas id="chart1" width="500" height="280"></canvas>
-            </div>
-            <div class="chart-wrapper">
-                <canvas id="chart2" width="500" height="280"></canvas>
-            </div>
-        </div>
-        <div id="benchmarkSummary"></div>
-    </div>
-
 </div>
 
 <!-- ─── Scripts (loaded in dependency order) ──────────────── -->
@@ -167,7 +150,6 @@
 <script src="js/planRepair.js"></script>
 <script src="js/simulation.js"></script>
 <script src="js/visualization.js"></script>
-<script src="js/charts.js"></script>
 <script src="js/app.js"></script>
 
 </body>

@@ -415,9 +415,9 @@ def run_all_experiments(output_dir="results"):
     """Run all experiments and generate plots."""
     os.makedirs(output_dir, exist_ok=True)
 
-    print("\n" + "█" * 60)
+    print("\n" + "=" * 60)
     print("  RUNNING ALL EXPERIMENTS")
-    print("█" * 60)
+    print("=" * 60)
 
     start = time.time()
 

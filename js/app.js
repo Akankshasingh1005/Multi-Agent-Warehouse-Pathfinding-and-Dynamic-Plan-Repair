@@ -22,13 +22,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('simCanvas');
     vis = new Visualization(canvas);
 
-    // Chart canvases
-    chart1 = new SimpleChart(document.getElementById('chart1'));
-    chart2 = new SimpleChart(document.getElementById('chart2'));
+    // Chart canvases (if present)
+    const chart1El = document.getElementById('chart1');
+    const chart2El = document.getElementById('chart2');
+    if (chart1El && typeof SimpleChart !== 'undefined') {
+        chart1 = new SimpleChart(chart1El);
+    }
+    if (chart2El && typeof SimpleChart !== 'undefined') {
+        chart2 = new SimpleChart(chart2El);
+    }
 
     // Resize canvas to fit container
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    const container = document.getElementById('canvasContainer');
+    if (window.ResizeObserver && container) {
+        new ResizeObserver(() => resizeCanvas()).observe(container);
+    }
 
     // Bind controls
     document.getElementById('btnGenerate').addEventListener('click', generateScenario);
@@ -86,7 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('btnRunBenchmark').addEventListener('click', runBenchmark);
+    const btnBenchmark = document.getElementById('btnRunBenchmark');
+    if (btnBenchmark) {
+        btnBenchmark.addEventListener('click', runBenchmark);
+    }
 
     // Canvas click for cell blockage
     canvas.addEventListener('click', (e) => {
@@ -128,11 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
 function resizeCanvas() {
     const container = document.getElementById('canvasContainer');
     const canvas = document.getElementById('simCanvas');
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-    if (vis) {
-        vis.resize(canvas.width, canvas.height);
-        vis.render();
+    if (!container || !canvas) return;
+    if (container.clientWidth > 0 && container.clientHeight > 0) {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        if (vis) {
+            vis.resize(canvas.width, canvas.height);
+            vis.render();
+        }
     }
 }
 

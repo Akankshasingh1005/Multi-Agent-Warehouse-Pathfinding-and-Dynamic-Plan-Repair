@@ -581,7 +581,7 @@ def visualize_matplotlib(simulation, save_path=None, show=True, interval=300):
     return anim
 
 
-def plot_static_snapshot(simulation, time_step=0, save_path=None):
+def plot_static_snapshot(simulation, time_step=0, save_path=None, show=False):
     """
     Create a static snapshot of the simulation at a given time step.
 
@@ -589,6 +589,7 @@ def plot_static_snapshot(simulation, time_step=0, save_path=None):
         simulation: Simulation object (already run).
         time_step: Time step to visualize.
         save_path: If provided, save the plot to this path.
+        show: Whether to display the plot window interactively.
     """
     grid = simulation.grid
     agents = simulation.agents
@@ -657,4 +658,7 @@ def plot_static_snapshot(simulation, time_step=0, save_path=None):
         plt.savefig(save_path, dpi=150, facecolor=fig.get_facecolor())
         print(f"Snapshot saved to {save_path}")
 
-    plt.show()
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
