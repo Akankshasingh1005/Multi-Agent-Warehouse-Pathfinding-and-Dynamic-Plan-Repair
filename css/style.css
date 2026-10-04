@@ -140,13 +140,29 @@ html, body {
 }
 
 .legend-icon.pickup {
-    background: var(--color-green);
-    color: #000;
+    background: #00c878;
+    color: #ffffff;
+    border: 1.5px solid #ffffff;
+    transform: rotate(45deg);
+    width: 14px;
+    height: 14px;
+    margin: 0 4px;
+}
+
+.legend-icon.pickup span {
+    transform: rotate(-45deg);
+    display: inline-block;
+    font-size: 10px;
+    line-height: 1;
 }
 
 .legend-icon.delivery {
-    background: var(--color-blue);
-    color: #fff;
+    background: #ffb400;
+    color: #111111;
+    border: 1.5px solid #ffffff;
+    width: 15px;
+    height: 15px;
+    font-size: 10px;
 }
 
 /* ==========================================================================

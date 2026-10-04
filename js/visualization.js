@@ -131,9 +131,9 @@ class Visualization {
         this._drawGrid();
         this._drawObstacles();
         this._drawBlockedCells();
-        this._drawTaskLocations();
         if (this.showPaths) this._drawPaths();
         if (this.showFuturePaths) this._drawFuturePaths();
+        this._drawTaskLocations();
         this._drawAgents();
         this._drawParticles();
         this._drawHoveredCell();
@@ -225,59 +225,92 @@ class Visualization {
 
     /**
      * Draw pickup and delivery locations for all agents.
+     * Always visible with distinct emerald green diamonds and amber squares.
      */
     _drawTaskLocations() {
         const ctx = this.ctx;
         const sim = this.simulation;
 
         for (const agent of sim.agents) {
-            for (const task of agent.tasks) {
-                const markerSize = this.cellSize * 0.35;
+            for (let tIdx = 0; tIdx < agent.tasks.length; tIdx++) {
+                const task = agent.tasks[tIdx];
+                const markerSize = Math.max(8, Math.floor(this.cellSize * 0.38));
 
-                // Pickup location (solid green diamond with black border)
-                if (task.status === TaskStatus.PENDING) {
-                    const px = this.offsetX + task.pickupX * this.cellSize + this.cellSize / 2;
-                    const py = this.offsetY + task.pickupY * this.cellSize + this.cellSize / 2;
+                // ─── Pickup Location (Emerald Green Diamond, #00c878) ───
+                const px = this.offsetX + task.pickupX * this.cellSize + this.cellSize / 2;
+                const py = this.offsetY + task.pickupY * this.cellSize + this.cellSize / 2;
+                const isPickedUp = (task.status === TaskStatus.PICKED_UP || task.status === TaskStatus.DELIVERED);
 
-                    ctx.fillStyle = '#009900';
-                    ctx.beginPath();
-                    ctx.moveTo(px, py - markerSize);
-                    ctx.lineTo(px + markerSize, py);
-                    ctx.lineTo(px, py + markerSize);
-                    ctx.lineTo(px - markerSize, py);
-                    ctx.closePath();
-                    ctx.fill();
+                ctx.save();
+                ctx.globalAlpha = isPickedUp ? 0.35 : 1.0;
 
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
+                // Diamond shape
+                ctx.fillStyle = '#00c878';
+                ctx.beginPath();
+                ctx.moveTo(px, py - markerSize);
+                ctx.lineTo(px + markerSize, py);
+                ctx.lineTo(px, py + markerSize);
+                ctx.lineTo(px - markerSize, py);
+                ctx.closePath();
+                ctx.fill();
 
-                    // Label
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = `bold ${Math.floor(this.cellSize * 0.3)}px Consolas, monospace`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('P', px, py);
-                }
+                // Crisp border
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
 
-                // Delivery location (solid blue square with black border)
-                if (task.status !== TaskStatus.DELIVERED) {
-                    const dx = this.offsetX + task.deliveryX * this.cellSize + this.cellSize / 2;
-                    const dy = this.offsetY + task.deliveryY * this.cellSize + this.cellSize / 2;
+                // 'P' label in center
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${Math.max(10, Math.floor(this.cellSize * 0.34))}px Consolas, monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('P', px, py);
 
-                    ctx.fillStyle = '#0055cc';
-                    ctx.fillRect(dx - markerSize, dy - markerSize, markerSize * 2, markerSize * 2);
+                // Small agent color badge dot
+                ctx.beginPath();
+                ctx.arc(px + markerSize * 0.7, py - markerSize * 0.7, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = agent.color;
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
 
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 1.5;
-                    ctx.strokeRect(dx - markerSize, dy - markerSize, markerSize * 2, markerSize * 2);
+                ctx.restore();
 
-                    ctx.fillStyle = '#ffffff';
-                    ctx.font = `bold ${Math.floor(this.cellSize * 0.3)}px Consolas, monospace`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('D', dx, dy);
-                }
+                // ─── Delivery Location (Amber Gold Square, #ffb400) ───
+                const dx = this.offsetX + task.deliveryX * this.cellSize + this.cellSize / 2;
+                const dy = this.offsetY + task.deliveryY * this.cellSize + this.cellSize / 2;
+                const isDelivered = (task.status === TaskStatus.DELIVERED);
+
+                ctx.save();
+                ctx.globalAlpha = isDelivered ? 0.35 : 1.0;
+
+                // Square shape
+                ctx.fillStyle = '#ffb400';
+                ctx.fillRect(dx - markerSize, dy - markerSize, markerSize * 2, markerSize * 2);
+
+                // Crisp border
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.8;
+                ctx.strokeRect(dx - markerSize, dy - markerSize, markerSize * 2, markerSize * 2);
+
+                // 'D' label in center
+                ctx.fillStyle = '#111111';
+                ctx.font = `bold ${Math.max(10, Math.floor(this.cellSize * 0.34))}px Consolas, monospace`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('D', dx, dy);
+
+                // Small agent color badge dot
+                ctx.beginPath();
+                ctx.arc(dx + markerSize, dy - markerSize, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = agent.color;
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.restore();
             }
         }
     }
