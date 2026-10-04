@@ -36,6 +36,7 @@ Multi-agent coordinated execution: robots collect parcels from pickup diamonds, 
   - [Local Plan Repair & Neighbor Negotiation](#3-local-plan-repair--neighbor-negotiation)
 - [Dynamic Disruption Modalities](#-dynamic-disruption-modalities)
 - [Experimental Benchmarks & Results](#-experimental-benchmarks--results)
+- [Failure Analysis: Environmental Settings Where Agents Fail](#️-failure-analysis-environmental-settings-where-agents-fail)
 - [Installation & Setup](#-installation--setup)
 - [Quick Start Guide](#-quick-start-guide)
   - [1. Launch Interactive Web GUI](#1-interactive-browser-gui-recommended)
@@ -221,6 +222,40 @@ Empirical results obtained from systematic Monte Carlo trials (20 × 20 grid, 5 
 | **10** | 148.0 ± 127.3 | 4.0 ± 1.4 |
 
 ---
+
+## Failure Analysis: Environmental Settings Where Agents Fail
+
+A rigorous evaluation of autonomous multi-agent systems requires isolating specific environmental settings and operational conditions under which pathfinding and dynamic plan repair **fail to complete assigned tasks** (or trigger simulation timeouts).
+
+While the system reliably achieves a **100% completion rate** under moderate densities (N ≤ 6, ρ ≤ 20%), empirical stress testing reveals **four primary failure regimes**:
+
+| Environmental Setting / Parameter | Physical Scenario | Algorithmic Failure Cause | Observable Impact | Architectural Remedy |
+|---|---|---|---|---|
+| **1. Dense Fleets in Narrow Corridors**<br>• N ≥ 8 agents on 20 × 20 grid<br>• Corridor width w = 1 cell | Two opposing robots enter a 1-tile wide aisle between static shelf racks. | **Symmetrical Head-to-Head Deadlock:** Neither agent can advance. Local peer negotiation fails because neither agent has a lateral escape cell without executing multi-step reverse egress. Both robots cycle into Phase 3 bounded wait states (τ<sub>wait</sub> = 10). | Completion rate drops to **80%** (Table 1); robots exceed the T<sub>max</sub> = 400 step horizon without finishing. | • Unidirectional flow corridors<br>• Periodic lateral pull-out alcoves<br>• Multi-step reverse evacuation protocol |
+| **2. High Static Obstacle Density**<br>• ρ ≥ 25% - 30% static racks<br>• Choke points & articulation nodes | A dynamic cell blockage or breakdown occurs at a topological bridge (cut-vertex) on the grid. | **Topological Graph Disconnection:** The failure severs the grid graph into disconnected components (G → G₁ ∪ G₂). If an agent is in G₁ and its target is in G₂, Space-Time A* returns `FAIL` because no spatial path exists. | Robot freezes in place; task remains permanently uncompleted. | • Graph biconnectivity validation before placing blockages<br>• Redundant wide transit corridors |
+| **3. Terminal Station Breakdowns**<br>• Agent breakdown on target tile<br>• Single-access pickup/delivery cells | An agent experiences a hardware breakdown directly on or in front of a pickup diamond (`P`) or delivery square (`D`). | **Target Cell Inaccessibility:** The disabled robot permanently blocks the goal tile. Any active agent assigned to collect or drop off parcels at that station can never satisfy the destination arrival condition (h(x, y) = 0). | Affected agent waits indefinitely; trial never reaches 100% mission completion. | • Multi-tile perimeter access for stations<br>• Dynamic task re-dispatch to alternate functional stations |
+| **4. Compounding Disruption Cascades**<br>• High disruption frequency (k ≥ 7 events)<br>• Clustered arrival intervals | Multiple unexpected contingencies occur across tight spatial and temporal intervals. | **Time Horizon Expiry (t ≥ T<sub>max</sub>):** Although local rerouting succeeds geometrically, successive Phase 3 wait buffers (τ<sub>wait</sub> = 10) accumulate large execution delays, pushing total execution time past the hard cutoff (T<sub>max</sub> = 400). | Agents are functional and moving toward targets, but fail to finish before the global deadline expires. | • Dynamic deadline-aware priority boost<br>• Adaptive wait intervals based on remaining time budget |
+
+### In-Depth Breakdown of Failure Mechanics
+
+#### 1. Symmetrical Deadlocks in Single-Cell Aisles
+
+In grid layouts with 1-cell wide aisles, cooperative space-time reservation prevents collisions by reserving future states (x, y, t). However, when an unexpected disruption forces an agent to dynamically replan into an already-occupied corridor, or when two agents are executing opposing legs of a pickup-delivery sequence:
+
+- **Collision Rules:** Cell sharing (p<sub>i</sub>(t) = p<sub>j</sub>(t)) and edge swapping (p<sub>i</sub>(t) = p<sub>j</sub>(t + 1) ∧ p<sub>i</sub>(t + 1) = p<sub>j</sub>(t)) are strictly forbidden.
+- **Negotiation Limitation:** Neighbor negotiation queries agents within R ≤ 5. While neighbor a<sub>j</sub> is willing to yield its reservation, a<sub>j</sub> cannot step sideways into an obstacle wall. Since the current protocol evaluates single-agent forward detours rather than synchronized multi-agent reverse maneuvers, atomic agreement cannot be reached.
+- **Livelock Cycling:** Both agents fall back to Phase 3 waiting (τ<sub>wait</sub> = 10). After 10 steps, both simultaneously wake up, attempt replanning, detect the same opposing obstacle, and enter another wait cycle until the simulation times out at T<sub>max</sub> = 400.
+
+#### 2. Graph Disconnection in Dense Topologies (ρ ≥ 25%)
+
+When static rack density reaches ρ ≥ 25%, the free space forms long, labyrinthine bottlenecks. If a random dynamic cell blockage or agent breakdown is injected at an articulation vertex (a node whose removal increases the number of connected components), the warehouse floor is split. Space-Time A* explores all reachable states in the agent's component, exhausts the open list, and returns `FAIL`. Neighbor negotiation is powerless because the obstruction is a physical environmental wall rather than a negotiating robot.
+
+#### 3. Station Gateway Ingress Obstruction
+
+Each pickup diamond and delivery square occupies a specific coordinate. In layouts where storage racks restrict access to a station from only one orthogonal direction, an agent breakdown at that ingress coordinate permanently seals the station. Because the assignment model assumes fixed target assignments, the remaining agents cannot substitute alternate drop-off points, resulting in an unsolvable task state.
+
+---
+
 
 ## Installation & Setup
 
